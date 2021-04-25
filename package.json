@@ -1,5 +1,5 @@
 {
-  "name": "brackets-eslint",
+  "name": "brackets-eslint-albert",
   "version": "3.2.0",
   "engines": {
     "brackets": ">=1.9.0"
@@ -13,7 +13,7 @@
     "linting",
     "linter"
   ],
-  "homepage": "https://github.com/brackets-userland/brackets-eslint",
+  "homepage": "https://github.com/albert200000/brackets-eslint",
   "bugs": "https://github.com/brackets-userland/brackets-eslint/issues",
   "license": "MIT",
   "author": {
@@ -23,7 +23,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/brackets-userland/brackets-eslint.git"
+    "url": "https://github.com/albert200000/brackets-eslint.git"
   },
   "scripts": {
     "dev": "tsc --watch",
@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "brackets-inspection-gutters": "^0.2.10",
-    "eslint": "^3.16.1"
+    "eslint": "^7.24.0"
   },
   "devDependencies": {
     "@types/jquery": "2.0.40",

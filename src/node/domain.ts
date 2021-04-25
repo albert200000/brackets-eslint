@@ -1,6 +1,6 @@
 import * as esLint from './eslint';
 
-const EXTENSION_NAME = 'brackets-eslint';
+const EXTENSION_NAME = 'brackets-eslint-albert';
 const EXTENSION_UNIQUE_NAME = 'zaggino.' + EXTENSION_NAME;
 const domainName = EXTENSION_UNIQUE_NAME;
 

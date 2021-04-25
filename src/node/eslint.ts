@@ -21,7 +21,7 @@ export interface ESLintCLIEngine {
   };
 }
 
-const EXTENSION_NAME = 'brackets-eslint';
+const EXTENSION_NAME = 'brackets-eslint-albert';
 const fs = require('fs');
 const path = require('path');
 const nodeVersion = process.versions.node;
