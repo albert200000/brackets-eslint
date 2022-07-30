@@ -26,6 +26,7 @@
     "url": "https://github.com/albert200000/brackets-eslint.git"
   },
   "scripts": {
+    "postinstall": "npm run build",
     "dev": "tsc --watch",
     "test": "npm run prepublish",
     "prepublish": "npm prune && npm update && npm run build && npm run lint",
@@ -33,8 +34,7 @@
     "lint": "tslint -c tslint.json --project tsconfig.json"
   },
   "dependencies": {
-    "brackets-inspection-gutters": "^0.2.10",
-    "eslint": "^7.24.0"
+    "brackets-inspection-gutters": "^0.2.10"
   },
   "devDependencies": {
     "@types/jquery": "2.0.40",
