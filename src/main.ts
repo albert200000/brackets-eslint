@@ -24,8 +24,8 @@ define((require, exports, module) => {
   preferences.definePreference('gutterMarks', 'boolean', true);
   preferences.set('gutterMarks', preferences.get('gutterMarks'));
 
-  preferences.definePreference('useLocalESLint', 'boolean', false);
-  preferences.set('useLocalESLint', preferences.get('useLocalESLint'));
+  preferences.definePreference('nodePath', 'string', 'node');
+  preferences.set('nodePath', preferences.get('nodePath'));
 
   // Constants
   const LINTER_NAME = 'ESLint';
@@ -38,8 +38,9 @@ define((require, exports, module) => {
   function handleLintAsync(text: string, fullPath: string): JQueryPromise<CodeInspectionReport> {
     const deferred: JQueryDeferred<CodeInspectionReport> = $.Deferred();
     const projectRoot = ProjectManager.getProjectRoot().fullPath;
-    const useLocalESLint = preferences.get('useLocalESLint');
-    nodeDomain.exec('lintFile', projectRoot, fullPath, text, useLocalESLint)
+    const nodePath = preferences.get('nodePath');
+
+    nodeDomain.exec('lintFile', projectRoot, fullPath, nodePath)
       .then((report: CodeInspectionReport) => {
         // set gutter marks using brackets-inspection-gutters module
         const w = (<any> window);
@@ -72,12 +73,11 @@ define((require, exports, module) => {
     }
 
     const projectRoot = ProjectManager.getProjectRoot().fullPath;
-    nodeDomain.exec('fixFile', projectRoot, fullPath, doc.getText())
+    const nodePath = preferences.get('nodePath');
+
+    nodeDomain.exec('fixFile', projectRoot, fullPath, nodePath)
       .then((response) => {
-        const text = response && response.results[0] ? response.results[0].output : '';
-        if (text) {
-          doc.setText(text);
-        }
+//        const text = response && response.results[0] ? response.results[0].output : '';
 
         // Reset editor back to previous cursor position
         editor.setCursorPos(cursor);

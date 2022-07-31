@@ -21,8 +21,7 @@ exports.init = (_domainManager: any) => {
     [
       { name: 'projectRoot', type: 'string' },
       { name: 'fullPath', type: 'string' },
-      { name: 'text', type: 'string' },
-      { name: 'useLocalESLint', type: 'boolean' }
+      { name: 'nodePath', type: 'string' }
     ], [
       { name: 'report', type: 'object' }
     ]
@@ -37,7 +36,7 @@ exports.init = (_domainManager: any) => {
     [
       { name: 'projectRoot', type: 'string' },
       { name: 'fullPath', type: 'string' },
-      { name: 'text', type: 'string' }
+      { name: 'nodePath', type: 'string' }
     ]
   );
 

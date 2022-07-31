@@ -1,87 +1,26 @@
 import { CodeInspectionReport, CodeInspectionResult, CodeInspectionResultType } from '../types';
 
-export interface ESLint {
-  CLIEngine: {
-    new(opts: ESLintOptions): ESLintCLIEngine;
-  };
-}
-
-export interface ESLintOptions {
-  cwd?: string;
-  rulePaths?: string[];
-  ignore?: boolean;
-  ignorePath?: string;
-  baseConfig?: Object;
-}
-
-export interface ESLintCLIEngine {
-  executeOnText: Function;
-  options: {
-    fix: boolean;
-  };
-}
-
 const EXTENSION_NAME = 'brackets-eslint-albert';
 const fs = require('fs');
 const path = require('path');
-const nodeVersion = process.versions.node;
-const isOldNode = /^0/.test(nodeVersion);
+const exec = require('child_process').exec
 const defaultCwd = process.cwd();
-const ESLINT_SEVERITY_ERROR = 2;
-const ESLINT_SEVERITY_WARNING = 1;
+const ESLINT_SEVERITY_ERROR = "Error";
+const ESLINT_SEVERITY_WARNING = "Warning";
 const BRACKETS_TYPE_ERROR = 'problem_type_error';
 const BRACKETS_TYPE_WARNING = 'problem_type_warning';
 const BRACKETS_TYPE_META = 'problem_type_meta';
 
-let cli: ESLintCLIEngine | null = null;
-let currentVersion: string | null = null;
 let currentProjectRoot: string | null = null;
 let currentProjectRootHasConfig: boolean = false;
 let erroredLastTime: boolean = true;
+let eslintPath: string = 'eslint';
 
 const log = {
   info: (...args: any[]) => console.log('[' + EXTENSION_NAME + ']', ...args),
   warn: (...args: any[]) => console.warn('[' + EXTENSION_NAME + ']', ...args),
   error: (...args: any[]) => console.error('[' + EXTENSION_NAME + ']', ...args)
 };
-
-function getCli(eslintPath: string, opts: ESLintOptions): ESLintCLIEngine | null {
-  let _realPath: string;
-  try {
-    _realPath = require.resolve(eslintPath);
-  } catch (err) {
-    log.error(`Wasn't able to resolve path to eslint: ${err.stack}`);
-    return null;
-  }
-
-  let _eslint: ESLint;
-  try {
-    _eslint = require(eslintPath);
-  } catch (err) {
-    log.error(`Wasn't able to load eslint from ${_realPath}, be sure to run 'npm install' properly: ${err.stack}`);
-    return null;
-  }
-
-  if (!_eslint.CLIEngine) {
-    log.error(`No CLIEngine found for eslint loaded from ${_realPath}, which version are you using?`);
-    return null;
-  }
-
-  return new _eslint.CLIEngine(opts);
-}
-
-function getEslintVersion(eslintPath: string): string {
-  return require(eslintPath + '/package.json').version;
-}
-
-export function refreshEslintCli(eslintPath: string, opts: ESLintOptions, allowLocalEslint: boolean) {
-  try {
-    currentVersion = getEslintVersion(eslintPath);
-    cli = getCli(eslintPath, opts);
-  } catch (err) {
-    log.error(err);
-  }
-}
 
 function uniq<T>(arr: T[]): T[] {
   return arr.reduce((result: T[], item: T) => {
@@ -103,62 +42,20 @@ function nodeModulesInDir(dirPath: string) {
   return path.resolve(normalizeDir(dirPath), 'node_modules');
 }
 
-export function setProjectRoot(projectRoot: string | null, prevProjectRoot: string | null, useLocalESLint: boolean) {
+export function setProjectRoot(projectRoot: string | null, prevProjectRoot: string | null) {
   // refresh when called without arguments
   if (!projectRoot) { projectRoot = currentProjectRoot; }
 
-  const opts: ESLintOptions = {};
-  let eslintPath: string = 'eslint';
-  let rulesDirPath: string;
-  let ignorePath: string;
-
   if (projectRoot) {
-    // this is critical for correct .eslintrc resolution
-    opts.cwd = projectRoot;
-
+    eslintPath = projectRoot + 'node_modules/.bin/eslint';
     try {
-      currentProjectRootHasConfig = fs.readdirSync(projectRoot).some((file: string) => {
-        return /^\.eslintrc($|\.[a-z]+$)/i.test(file);
-      });
-    } catch (err) {
-      log.warn(`Failed to read contents of ${projectRoot}: ${err}`);
-      currentProjectRootHasConfig = false;
-    }
-
-    if (!currentProjectRootHasConfig) {
-      opts.baseConfig = { extends: 'eslint:recommended' };
-    }
-
-    if (useLocalESLint) {
-      eslintPath = projectRoot + 'node_modules/eslint';
-      try {
-        if (fs.statSync(eslintPath).isDirectory()) {
-          // no action required
-        } else {
-          throw new Error('not found');
-        }
-      } catch (ignoreErr) {
-        // Use default
-      }
-    }
-
-    rulesDirPath = projectRoot + '.eslintrules';
-    try {
-      if (fs.statSync(rulesDirPath).isDirectory()) {
-        opts.rulePaths = [rulesDirPath];
+      if (fs.statSync(eslintPath).isDirectory()) {
+        // no action required
+      } else {
+        throw new Error('not found');
       }
     } catch (ignoreErr) {
-      // no action required
-    }
-
-    ignorePath = projectRoot + '.eslintignore';
-    try {
-      if (fs.statSync(ignorePath).isFile()) {
-        opts.ignore = true;
-        opts.ignorePath = ignorePath;
-      }
-    } catch (ignoreErr) {
-      // no action required
+      // Use default
     }
   }
 
@@ -184,13 +81,10 @@ export function setProjectRoot(projectRoot: string | null, prevProjectRoot: stri
   nodePaths = uniq(nodePaths);
   process.env.NODE_PATH = nodePaths.join(path.delimiter);
   require('module').Module._initPaths();
-
-  // console.log('ESLint NODE_PATH', process.env.NODE_PATH);
-  refreshEslintCli(eslintPath, opts, useLocalESLint);
 }
 
-function mapEslintMessage(result: any, majorVersion: number): CodeInspectionResult {
-  const offset = majorVersion < 1 ? 0 : 1;
+function mapEslintMessage(result: any): CodeInspectionResult {
+  const offset = 1;
 
   let message: string;
   let type: CodeInspectionResultType;
@@ -209,52 +103,56 @@ function mapEslintMessage(result: any, majorVersion: number): CodeInspectionResu
   }
 
   message += result.message;
-  if (result.ruleId) { message += ' [' + result.ruleId + ']'; }
 
   return {
     type,
     message,
     pos: {
-      line: result.line - 1,
+      line: result.line - offset,
       ch: result.column - offset
     }
   };
 }
 
-function createCodeInspectionReport(eslintReport: any): CodeInspectionReport {
-  // if version is missing, assume 1
-  const version = eslintReport.eslintVersion ? eslintReport.eslintVersion.split('.')[0] : 1;
-  const results = eslintReport.results ? eslintReport.results[0] : null;
-  const messages = results ? results.messages : [];
+function createCodeInspectionReport(eslintReport: string): CodeInspectionReport {
+  const messages : any[] = [];
+  const parseRegex = /(.+):\sline\s(\d+),\scol\s(\d+),\s(.+)\s-\s(.+)\s.+/g
+  let match = parseRegex.exec(eslintReport);
+
+  while (match !== null) {
+    messages.push({
+      line: +match[2],
+      column: +match[3],
+      severity: match[4],
+      message: match[5]
+    });
+
+    match = parseRegex.exec(eslintReport);
+  }
+
   return {
-    errors: messages.map((x: any) => mapEslintMessage(x, version))
+    errors: messages.map((x: any) => mapEslintMessage(x))
   };
 }
 
-function createUserError(message: string): CodeInspectionReport {
-  erroredLastTime = true;
-  return {
-    errors: [{
-      type: 'problem_type_error',
-      message,
-      pos: { line: 0, ch: 0 }
-    }]
-  };
-}
+//function createUserError(message: string): CodeInspectionReport {
+//  erroredLastTime = true;
+//  return {
+//    errors: [{
+//      type: 'problem_type_error',
+//      message,
+//      pos: { line: 0, ch: 0 }
+//    }]
+//  };
+//}
 
 export function lintFile(
-  projectRoot: string, fullPath: string, text: string, useLocalESLint: boolean,
+  projectRoot: string, fullPath: string, nodePath: string,
   callback: (err: Error | null, res?: CodeInspectionReport) => void
 ) {
-  if (isOldNode && currentVersion && /^3/.test(currentVersion)) {
-    return callback(null, createUserError(
-      `ESLintError: Legacy node process detected (${nodeVersion}), ` +
-      `please update to Brackets 1.8 or Brackets-Electron to support ESLint ${currentVersion}`
-    ));
-  }
   if (erroredLastTime || projectRoot !== currentProjectRoot) {
     try {
-      setProjectRoot(projectRoot, currentProjectRoot, useLocalESLint);
+      setProjectRoot(projectRoot, currentProjectRoot);
       currentProjectRoot = projectRoot;
       erroredLastTime = false;
     } catch (err) {
@@ -264,49 +162,16 @@ export function lintFile(
   if (/(\.ts|\.tsx)$/.test(fullPath) && !currentProjectRootHasConfig) {
     return callback(null, { errors: [] });
   }
-  if (cli == null) {
-    if (currentProjectRootHasConfig) {
-      return callback(null, createUserError(
-        `ESLintError: You need to install ESLint in your project folder with 'npm install eslint'`
-      ));
-    } else {
-      return callback(null, createUserError(
-        `ESLintError: No ESLint cli is available, try reinstalling the extension`
-      ));
-    }
-  }
-  const relativePath = fullPath.indexOf(projectRoot) === 0 ? fullPath.substring(projectRoot.length) : fullPath;
-  let res: any;
-  let err: Error | null = null;
-  try {
-    res = cli.executeOnText(text, relativePath);
-    res.eslintVersion = currentVersion;
-  } catch (e) {
-    log.error(`Error thrown in executeOnText: ${e.stack}`);
-    err = e;
-    erroredLastTime = true;
-  }
-  return callback(err, res ? createCodeInspectionReport(res) : void 0);
+
+  exec(nodePath + " " + eslintPath + " --no-color --format compact " + fullPath, function (e, stdout) {
+    callback(null, createCodeInspectionReport(stdout));
+  });
 }
 
 export function fixFile(
-  projectRoot: string, fullPath: string, text: string, callback: (err: Error | null, res?: any) => void
+  projectRoot: string, fullPath: string, nodePath: string, callback: (err: Error | null, res?: any) => void
 ) {
-  if (cli == null) {
-    return callback(new Error(`ESLintError: No ESLint cli is available, try reinstalling the extension`));
-  }
-  let res: any;
-  let err: Error | null = null;
-  cli.options.fix = true;
-  try {
-    process.chdir(projectRoot);
-    res = cli.executeOnText(text, fullPath);
-    res.eslintVersion = currentVersion;
-  } catch (e) {
-    log.error(e.stack);
-    err = e;
-  } finally {
-    cli.options.fix = false;
-  }
-  callback(err, res);
+  exec(nodePath + " " + eslintPath + ' --fix ' + fullPath, function (e, stdout) {
+    callback(null, stdout);
+  });
 }
