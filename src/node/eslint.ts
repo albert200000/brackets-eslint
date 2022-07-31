@@ -12,7 +12,6 @@ const BRACKETS_TYPE_WARNING = 'problem_type_warning';
 const BRACKETS_TYPE_META = 'problem_type_meta';
 
 let currentProjectRoot: string | null = null;
-let currentProjectRootHasConfig: boolean = false;
 let erroredLastTime: boolean = true;
 let eslintPath: string = 'eslint';
 
@@ -159,11 +158,8 @@ export function lintFile(
       log.error(`Error thrown in setProjectRoot: ${err.stack}`);
     }
   }
-  if (/(\.ts|\.tsx)$/.test(fullPath) && !currentProjectRootHasConfig) {
-    return callback(null, { errors: [] });
-  }
 
-  exec(nodePath + " " + eslintPath + " --no-color --format compact " + fullPath, function (e, stdout) {
+  exec(`${nodePath} ${eslintPath} --no-color --format compact ${fullPath}`, function (e, stdout) {
     callback(null, createCodeInspectionReport(stdout));
   });
 }
@@ -171,7 +167,7 @@ export function lintFile(
 export function fixFile(
   projectRoot: string, fullPath: string, nodePath: string, callback: (err: Error | null, res?: any) => void
 ) {
-  exec(nodePath + " " + eslintPath + ' --fix ' + fullPath, function (e, stdout) {
-    callback(null, stdout);
+  exec(`${nodePath} ${eslintPath} --fix ${fullPath}`, function () {
+    callback(null);
   });
 }

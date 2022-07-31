@@ -68,7 +68,7 @@ define((require, exports, module) => {
     const scroll = editor.getScrollPos();
 
     // Do nothing unless it's a Javascript file
-    if (fileType !== 'javascript') {
+    if (['javascript', 'jsx', 'typescript', 'tsx', 'vue'].indexOf(fileType) === -1) {
       return;
     }
 
@@ -76,9 +76,7 @@ define((require, exports, module) => {
     const nodePath = preferences.get('nodePath');
 
     nodeDomain.exec('fixFile', projectRoot, fullPath, nodePath)
-      .then((response) => {
-//        const text = response && response.results[0] ? response.results[0].output : '';
-
+      .then(() => {
         // Reset editor back to previous cursor position
         editor.setCursorPos(cursor);
         editor.setScrollPos(scroll.x, scroll.y);
