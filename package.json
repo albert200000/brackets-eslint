@@ -14,13 +14,8 @@
     "linter"
   ],
   "homepage": "https://github.com/albert200000/brackets-eslint",
-  "bugs": "https://github.com/brackets-userland/brackets-eslint/issues",
+  "bugs": "https://github.com/albert200000/brackets-eslint/issues",
   "license": "MIT",
-  "author": {
-    "name": "Martin Zagora",
-    "email": "zaggino@gmail.com",
-    "url": "https://github.com/zaggino"
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/albert200000/brackets-eslint.git"
@@ -28,19 +23,17 @@
   "scripts": {
     "postinstall": "npm run build",
     "dev": "tsc --watch",
-    "test": "npm run prepublish",
-    "prepublish": "npm prune && npm update && npm run build && npm run lint",
     "build": "rimraf ./dist && tsc",
     "lint": "tslint -c tslint.json --project tsconfig.json"
   },
   "dependencies": {
-    "brackets-inspection-gutters": "^0.2.10"
+    "brackets-inspection-gutters": "^0.2.10",
+    "rimraf": "2.6.1",
+    "typescript": "2.1.4"
   },
   "devDependencies": {
     "@types/jquery": "2.0.40",
     "@types/node": "7.0.5",
-    "rimraf": "2.6.1",
-    "tslint": "4.0.2",
-    "typescript": "2.1.4"
+    "tslint": "4.0.2"
   }
 }
